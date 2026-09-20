@@ -96,6 +96,26 @@ source.
 - `storms_2019.json` -- copy of the `storms` array from
   `data/hurdat2_2019_atlantic_ri_labels.json`, for the dashboard table.
 
+## Live data (`/api/live/current_storms`)
+
+`dashboard.py` proxies (server-side, to sidestep CORS) NHC's real,
+currently-live active-storms feed:
+https://www.nhc.noaa.gov/CurrentStorms.json -- fetched fresh on every
+request, no caching, no synthetic fallback. Confirmed reachable and real
+via the Browser pane on 2026-09-20 09:00Z: one genuine active storm,
+Tropical Storm Fay (`al062026`, 40kt, 1004hPa, 33.7N/33.1W). This
+sandbox's bash network allowlist blocks `nhc.noaa.gov` directly (the
+Flask proxy running in this sandbox gets `403 Forbidden`, confirmed by
+actually running it and calling the endpoint), so the endpoint was
+verified two ways instead of a live end-to-end curl from here: (1) the
+Browser pane fetch above, proving the feed itself is real and current;
+(2) a jsdom harness driving the real dashboard JS against a live local
+Flask process, covering the exact error path this sandbox produces and a
+success path built from Fay's real fetched fields, confirming correct
+rendering with zero JS errors. On a machine outside this sandbox (i.e.
+wherever the user actually runs `python dashboard.py`), the proxy should
+reach NHC directly with no changes.
+
 ## What this repo could NOT verify from this environment
 
 SHIPS (Statistical Hurricane Intensity Prediction Scheme) developmental

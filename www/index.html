@@ -48,6 +48,16 @@
   .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .arm { fill: none; stroke-width: 2.2; opacity: .55; }
   .cloud-shield { filter: blur(6px); }
+  .live-panel { margin-bottom: 14px; }
+  .live-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); display: inline-block; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  .live-status { font-size: 12px; color: var(--muted); }
+  .live-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .live-card { background: #0d1526; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+  .live-card .meta { color: var(--muted); font-size: 11.5px; }
+  .live-card.active { border-color: var(--accent); }
+  .live-tag { display: inline-block; background: var(--bad); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; letter-spacing: .03em; margin-left: 6px; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -60,6 +70,22 @@
   Mapa: linia brzegowa Atlantyku (Natural Earth 1:50m) + trasa sztormu + animowana "mgiełka"
   cyklonu (rozmiar/kolor = intensywność, wirujące ramiona = skręt) w wybranym punkcie trasy.
 </p>
+
+<div class="panel live-panel">
+  <div class="live-head">
+    <h2 style="margin:0;">Aktywne cyklony — na żywo (NHC)</h2>
+    <button id="liveLoadBtn">Wczytaj dane na żywo</button>
+    <span class="live-status" id="liveStatus">Nie wczytano jeszcze — kliknij, aby pobrać biezacy plik NHC CurrentStorms.json.</span>
+  </div>
+  <p class="sub" style="margin:8px 0 0;">
+    Zapytanie idzie z tego serwera (Flask, <code>/api/live/current_storms</code>) bezposrednio do
+    <code>nhc.noaa.gov</code> — bez cache, bez danych zastepczych. Jesli lista jest pusta, to
+    dlatego, ze NHC realnie nie raportuje w tej chwili zadnego aktywnego sztormu, nie blad.
+    Pozycja/wiatr sa aktualne na moment pobrania (patrz znacznik czasu przy kazdym wpisie), nie
+    z sezonu 2019 jak reszta dashboardu.
+  </p>
+  <div class="live-list" id="liveList"></div>
+</div>
 
 <div class="layout">
 
@@ -137,6 +163,8 @@ let state = {
   pointIndex: 0,
   playing: false,
   playTimer: null,
+  liveStorms: [],
+  liveActiveId: null,
 };
 
 async function loadAll() {
@@ -171,7 +199,9 @@ function renderTable() {
 function selectStorm(name) {
   state.selected = name;
   state.pointIndex = 0;
+  state.liveActiveId = null;
   stopPlay();
+  renderLiveList();
   [...document.querySelectorAll("#storm-table-body tr")].forEach(tr => {
     tr.classList.toggle("selected", tr.dataset.name === name);
   });
@@ -313,6 +343,114 @@ function updatePoint(idx) {
   });
 }
 
+async function loadLiveStorms() {
+  const statusEl = document.getElementById("liveStatus");
+  const listEl = document.getElementById("liveList");
+  statusEl.textContent = "Pobieranie z nhc.noaa.gov...";
+  listEl.innerHTML = "";
+  try {
+    const resp = await fetch("/api/live/current_storms");
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      statusEl.textContent = "Blad: " + (data.error || resp.statusText);
+      return;
+    }
+    state.liveStorms = data.activeStorms || [];
+    if (state.liveStorms.length === 0) {
+      statusEl.textContent = "NHC nie raportuje obecnie zadnego aktywnego cyklonu w basenie Atlantyku/Pacyfiku.";
+    } else {
+      const fetchedAt = new Date().toISOString().slice(0, 16).replace("T", " ") + "Z";
+      statusEl.textContent = `${state.liveStorms.length} aktywny(ch) sztorm(ow) — pobrano ${fetchedAt}.`;
+    }
+    renderLiveList();
+  } catch (err) {
+    statusEl.textContent = "Nie udalo sie polaczyc z serwerem dashboardu: " + err;
+  }
+}
+
+function renderLiveList() {
+  const listEl = document.getElementById("liveList");
+  listEl.innerHTML = state.liveStorms.map(s => {
+    const wind = parseFloat(s.intensity);
+    const cat = isFinite(wind) ? categoryFor(wind) : null;
+    const isActive = state.liveActiveId === s.id;
+    return `
+      <div class="live-card${isActive ? " active" : ""}" data-id="${s.id}">
+        <span>
+          <strong>${s.name}</strong> (${s.classification})<span class="live-tag">NA ŻYWO</span>
+          <div class="meta">${s.latitude}, ${s.longitude} · ${s.intensity} kt · ${s.pressure} hPa · aktualizacja ${s.lastUpdate}</div>
+        </span>
+        <button data-show-id="${s.id}">Pokaż na mapie</button>
+      </div>`;
+  }).join("");
+  listEl.querySelectorAll("button[data-show-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const storm = state.liveStorms.find(s => s.id === btn.dataset.showId);
+      if (storm) showLiveStormOnMap(storm);
+    });
+  });
+}
+
+function showLiveStormOnMap(storm) {
+  stopPlay();
+  state.selected = null;
+  state.liveActiveId = storm.id;
+  [...document.querySelectorAll("#storm-table-body tr")].forEach(tr => tr.classList.remove("selected"));
+  renderLiveList();
+
+  const lon = storm.longitudeNumeric, lat = storm.latitudeNumeric;
+  const wind = parseFloat(storm.intensity) || 0;
+  const cat = categoryFor(wind);
+
+  document.getElementById("map-title").textContent = `Na żywo (NHC) — ${storm.name}, aktualizacja ${storm.lastUpdate}`;
+  document.getElementById("chart-title").textContent = `Wiatr w czasie — ${storm.name} (brak historii, trwa sztorm)`;
+  document.getElementById("chart-svg").innerHTML =
+    `<text x="20" y="115" font-size="12" fill="#8b96ac">Brak sladu historycznego dla trwajacego sztormu — ` +
+    `to zrodlo (NHC CurrentStorms.json) daje tylko biezaca pozycje/intensywnosc, nie pelna serie 6h.</text>`;
+
+  // no historical track line/dots while showing a live point
+  document.getElementById("trackPath").setAttribute("d", "");
+  document.getElementById("trackDots").innerHTML = "";
+  document.getElementById("pointSlider").max = 0;
+  document.getElementById("pointSlider").value = 0;
+
+  const readout = document.getElementById("readout");
+  readout.innerHTML = `
+    <div class="cell"><span class="k">Aktualizacja (UTC)</span><span class="v">${storm.lastUpdate}</span></div>
+    <div class="cell"><span class="k">Klasyfikacja</span><span class="v">${storm.classification}</span></div>
+    <div class="cell"><span class="k">Wiatr</span><span class="v">${storm.intensity} kt</span></div>
+    <div class="cell"><span class="k">Kategoria</span><span class="v" style="color:${cat.color}">${cat.label}</span></div>`;
+
+  const glyph = document.getElementById("cycloneGlyph");
+  const [lonMin, lonMax] = state.coast.lon_range;
+  const [latMin, latMax] = state.coast.lat_range;
+  const inBox = lon >= lonMin && lon <= lonMax && lat >= latMin && lat <= latMax;
+  if (!inBox) {
+    glyph.setAttribute("transform", "translate(-200,-200)");
+    document.getElementById("readout").insertAdjacentHTML("beforeend",
+      `<div class="cell"><span class="k">Mapa</span><span class="v" style="font-size:11px;">poza zasięgiem mapy Atlantyku</span></div>`);
+    return;
+  }
+  const [x, y] = projectLonLat(lon, lat);
+  glyph.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+  const shieldR = 14 + (wind / 160) * 55;
+  glyph.querySelector(".cloud-shield").setAttribute("r", shieldR.toFixed(1));
+  glyph.style.setProperty("--glyph-color", cat.color);
+
+  const armsG = document.getElementById("spiralArms");
+  const armScale = shieldR * 0.9;
+  armsG.querySelectorAll("path.arm").forEach(p => p.remove());
+  const d = spiralArmPath(1.6, 40, armScale);
+  [0, 120, 240].forEach(rot => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "arm");
+    path.setAttribute("stroke", cat.color);
+    path.setAttribute("transform", `rotate(${rot})`);
+    armsG.appendChild(path);
+  });
+}
+
 function stopPlay() {
   state.playing = false;
   if (state.playTimer) clearInterval(state.playTimer);
@@ -336,6 +474,7 @@ document.getElementById("pointSlider").addEventListener("input", (e) => {
   updatePoint(parseInt(e.target.value));
 });
 document.getElementById("playBtn").addEventListener("click", togglePlay);
+document.getElementById("liveLoadBtn").addEventListener("click", loadLiveStorms);
 
 loadAll();
 </script>

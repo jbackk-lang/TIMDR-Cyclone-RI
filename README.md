@@ -135,6 +135,29 @@ BARRY -- not RI) have a bundled full track for the chart/map (rows for
 the other 15 are shown but disabled in the table) -- see
 `docs/SOURCES.md`, "Dashboard data".
 
+**Live data**: a "Wczytaj dane na żywo" (load live data) panel at the top
+queries `GET /api/live/current_storms`, which `dashboard.py` proxies
+server-side to NHC's real, currently-updated
+[`CurrentStorms.json`](https://www.nhc.noaa.gov/CurrentStorms.json) feed
+(fetched fresh every click, no caching, no fallback/placeholder data --
+an empty list is reported honestly as "NHC isn't currently tracking
+anything," not hidden). Each active storm can be plotted on the same map
+as a "NA ŻYWO" (live) glyph at its real current position, sized/colored
+by its real current intensity -- but with no historical track (this feed
+gives only the current snapshot, not a 6-hourly series), so the chart
+panel says so explicitly instead of showing an empty/misleading graph.
+The proxy is server-side specifically to avoid depending on NHC granting
+CORS to a page served from `127.0.0.1`. This sandbox's own network
+allowlist blocks `nhc.noaa.gov`, so the endpoint was verified two ways:
+(1) directly via the Browser pane, confirming the feed is real and, as of
+2026-09-20, lists one genuine active storm (Tropical Storm Fay,
+`al062026`, 40kt, 33.7N/33.1W); (2) end-to-end via a jsdom harness against
+a live local Flask process, covering both the real error the sandbox
+actually returns (`403 Forbidden` from the allowlist) and a success case
+built from Fay's real fetched data, confirming the map/readout render
+correctly and no JS errors occur. Running it on a normal machine (not
+this sandbox) should reach NHC directly with no changes needed.
+
 ## Repo layout
 
 ```
