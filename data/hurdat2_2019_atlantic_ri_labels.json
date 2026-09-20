@@ -1,0 +1,41 @@
+{
+  "source": "NHC HURDAT2 best track, https://www.nhc.noaa.gov/data/hurdat/hurdat2-1851-2024-040425.txt",
+  "fetched": "2026-09-20",
+  "method": "For each storm, 6-hourly synoptic best-track wind speed (kt). max_24h_increase_kt = max over all i of wind[i+4] - wind[i] (4 synoptic steps = 24h). ri = max_24h_increase_kt >= 30, matching NHC's official rapid intensification definition (>=30 kt increase in a 24h period).",
+  "note": "This labels OUTCOME (did the storm in fact rapidly intensify), not the precursor signals (tilt/alignment/environment) from Alvey et al. 2026 -- those require TC-RADAR/SHIPS data not accessible from this environment. Used as real-data regression fixtures for cyclone_ri/ri_outcome.py and as honest ground truth for README examples.",
+  "storms": [
+    {"name": "ANDREA", "n_entries": 7, "max_wind_kt": 35, "max_24h_increase_kt": -5, "ri": false},
+    {"name": "BARRY", "n_entries": 25, "max_wind_kt": 65, "max_24h_increase_kt": 15, "ri": false},
+    {"name": "THREE", "n_entries": 5, "max_wind_kt": 30, "max_24h_increase_kt": 5, "ri": false},
+    {"name": "CHANTAL", "n_entries": 25, "max_wind_kt": 35, "max_24h_increase_kt": 5, "ri": false},
+    {"name": "DORIAN", "n_entries": 70, "max_wind_kt": 160, "max_24h_increase_kt": 35, "ri": true},
+    {"name": "ERIN", "n_entries": 14, "max_wind_kt": 35, "max_24h_increase_kt": 5, "ri": false},
+    {"name": "FERNAND", "n_entries": 9, "max_wind_kt": 45, "max_24h_increase_kt": 15, "ri": false},
+    {"name": "GABRIELLE", "n_entries": 35, "max_wind_kt": 55, "max_24h_increase_kt": 20, "ri": false},
+    {"name": "HUMBERTO", "n_entries": 34, "max_wind_kt": 110, "max_24h_increase_kt": 20, "ri": false},
+    {"name": "JERRY", "n_entries": 45, "max_wind_kt": 90, "max_24h_increase_kt": 35, "ri": true},
+    {"name": "IMELDA", "n_entries": 9, "max_wind_kt": 40, "max_24h_increase_kt": 0, "ri": false},
+    {"name": "KAREN", "n_entries": 25, "max_wind_kt": 40, "max_24h_increase_kt": 10, "ri": false},
+    {"name": "LORENZO", "n_entries": 48, "max_wind_kt": 140, "max_24h_increase_kt": 40, "ri": true},
+    {"name": "MELISSA", "n_entries": 25, "max_wind_kt": 55, "max_24h_increase_kt": 15, "ri": false},
+    {"name": "FIFTEEN", "n_entries": 13, "max_wind_kt": 30, "max_24h_increase_kt": 0, "ri": false},
+    {"name": "NESTOR", "n_entries": 15, "max_wind_kt": 50, "max_24h_increase_kt": 15, "ri": false},
+    {"name": "OLGA", "n_entries": 10, "max_wind_kt": 45, "max_24h_increase_kt": 10, "ri": false},
+    {"name": "PABLO", "n_entries": 22, "max_wind_kt": 70, "max_24h_increase_kt": 20, "ri": false},
+    {"name": "REBEKAH", "n_entries": 23, "max_wind_kt": 70, "max_24h_increase_kt": 35, "ri": true},
+    {"name": "SEBASTIEN", "n_entries": 34, "max_wind_kt": 60, "max_24h_increase_kt": 10, "ri": false}
+  ],
+  "dorian_detail": {
+    "note": "Dorian is the example storm used in NOAA AOML's own visualization for the alignment study (Alvey et al. 2026) -- used here as the README's worked example.",
+    "from": {"date": "20190830", "time": "0000", "lat": "22.8N", "lon": "68.0W", "status": "HU", "wind_kt": 80},
+    "to": {"date": "20190831", "time": "0000", "lat": "25.3N", "lon": "71.1W", "status": "HU", "wind_kt": 115},
+    "increase_kt_24h": 35,
+    "full_wind_series_kt_6hourly": [
+      25, 30, 35, 35, 35, 40, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45,
+      50, 55, 60, 65, 70, 75, 75, 75, 75, 80, 90, 95, 100, 115, 120, 125,
+      130, 135, 145, 155, 160, 160, 155, 155, 145, 135, 125, 115, 105,
+      100, 95, 90, 90, 90, 95, 100, 100, 100, 95, 90, 90, 85, 85, 85, 85,
+      85, 85, 80, 80, 75, 70, 60, 50
+    ]
+  }
+}
