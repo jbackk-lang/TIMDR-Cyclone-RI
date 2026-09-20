@@ -107,6 +107,34 @@ python -m pytest tests/ -v
 No hardware, no API keys, no downloads required -- the real 2019 season
 data used for validation is bundled in `data/`.
 
+## Dashboard
+
+```
+python dashboard.py        # or double-click run_dashboard.bat on Windows
+```
+
+Opens `http://127.0.0.1:5050/` -- a static local dashboard (Flask just
+serves `www/`, no live API calls):
+
+- **Table**: the full real 2019 Atlantic season (20 storms) from
+  HURDAT2, with each storm's max wind, max 24h wind change, and RI
+  verdict.
+- **Chart**: real 6-hourly wind speed over time for the selected storm
+  (SVG, hand-rolled -- same convention as `Synoptyk-v3`'s dashboard),
+  with the 24h window that triggered RI shaded in red.
+- **Map**: a real Atlantic-basin coastline basemap (Natural Earth
+  1:50m, continent- and island-scale -- see `docs/SOURCES.md`) with the
+  storm's real track plotted, and an animated "mgiełka" (cloud/fog)
+  glyph at a scrubbable point along the track: a soft radial cloud
+  shield sized by wind speed, colored by Saffir-Simpson category, with
+  three spiral arms rotating on a 15-second cycle to suggest the
+  storm's rotation. A play button steps through the whole track.
+
+Only 5 of the 20 storms (DORIAN, LORENZO, JERRY -- all RI; HUMBERTO,
+BARRY -- not RI) have a bundled full track for the chart/map (rows for
+the other 15 are shown but disabled in the table) -- see
+`docs/SOURCES.md`, "Dashboard data".
+
 ## Repo layout
 
 ```

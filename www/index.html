@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TIMDR-Cyclone-RI — dashboard</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #121a2b; --border: #24304a; --text: #e6e8ee;
+    --muted: #8b96ac; --accent: #5eb0ef; --good: #4caf7d; --bad: #e0616b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif; padding: 20px;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 18px; font-size: 12.5px; max-width: 900px; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 14px; }
+  @media (max-width: 950px) { .layout { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .panel h2 { font-size: 13px; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--panel); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: #182238; }
+  tbody tr.selected { background: #1d3355; }
+  tbody tr.disabled { cursor: not-allowed; opacity: .4; }
+  .ri-yes { color: var(--bad); font-weight: 600; }
+  .ri-no { color: var(--muted); }
+  .table-wrap { max-height: 620px; overflow-y: auto; }
+  .right-col { display: flex; flex-direction: column; gap: 14px; }
+  #chart-svg, #map-svg { width: 100%; height: auto; display: block; }
+  .readout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; font-size: 12px; }
+  .readout .cell { background: #0d1526; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; }
+  .readout .cell .k { color: var(--muted); display: block; font-size: 10.5px; text-transform: uppercase; }
+  .readout .cell .v { font-size: 14px; font-weight: 600; }
+  .slider-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .slider-row input[type=range] { flex: 1; }
+  button { padding: 6px 12px; border: none; border-radius: 6px; background: var(--accent); color: #08131c; font-weight: 600; font-size: 12px; cursor: pointer; }
+  button:hover { opacity: .9; }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .arm { fill: none; stroke-width: 2.2; opacity: .55; }
+  .cloud-shield { filter: blur(6px); }
+</style>
+</head>
+<body>
+
+<h1>TIMDR-Cyclone-RI — dashboard</h1>
+<p class="sub">
+  Rzeczywiste dane NHC HURDAT2, sezon Atlantyku 2019. Tabela = pełny sezon (20 sztormów,
+  werdykt RI wg oficjalnej definicji NHC ≥30kt/24h). Wykres + mapa = 5 sztormów z pełnym
+  śladem (pozycja + wiatr co 6h): DORIAN, LORENZO, JERRY (RI) oraz HUMBERTO, BARRY (nie-RI).
+  Mapa: linia brzegowa Atlantyku (Natural Earth 1:50m) + trasa sztormu + animowana "mgiełka"
+  cyklonu (rozmiar/kolor = intensywność, wirujące ramiona = skręt) w wybranym punkcie trasy.
+</p>
+
+<div class="layout">
+
+  <div class="panel">
+    <h2>Sezon Atlantyku 2019 (HURDAT2)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sztorm</th><th>Max wiatr</th><th>Max 24h Δ</th><th>RI</th></tr></thead>
+        <tbody id="storm-table-body"></tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:10px;">RI = wzrost ≥30kt w oknie 24h (oficjalna definicja NHC). Wiersze wyszarzone = brak pełnego śladu w tym dashboardzie (tylko w pełnym HURDAT2).</p>
+  </div>
+
+  <div class="right-col">
+
+    <div class="panel">
+      <h2 id="chart-title">Wiatr w czasie</h2>
+      <svg id="chart-svg" viewBox="0 0 860 220" role="img" aria-label="Wykres predkosci wiatru w czasie"></svg>
+    </div>
+
+    <div class="panel">
+      <h2 id="map-title">Trasa i lokalizacja</h2>
+      <svg id="map-svg" viewBox="0 0 860 760" role="img" aria-label="Mapa linii brzegowej Atlantyku z trasa cyklonu">
+        <defs>
+          <radialGradient id="cloudGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="var(--glyph-color, #ffcc66)" stop-opacity="0.85"/>
+            <stop offset="60%" stop-color="var(--glyph-color, #ffcc66)" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="var(--glyph-color, #ffcc66)" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="860" height="760" fill="#0d1526"/>
+        <path id="coastPath" d="" fill="#1c2740" stroke="#3a4b6e" stroke-width="1"/>
+        <path id="trackPath" d="" fill="none" stroke="#5eb0ef" stroke-width="1.6" stroke-dasharray="3,3" opacity="0.8"/>
+        <g id="trackDots"></g>
+        <g id="cycloneGlyph" transform="translate(-100,-100)">
+          <circle class="cloud-shield" r="26" fill="url(#cloudGrad)"/>
+          <g class="spiral-arms" id="spiralArms">
+            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="15s" repeatCount="indefinite"/>
+          </g>
+          <circle class="eye" r="3" fill="#fff"/>
+        </g>
+      </svg>
+      <div class="legend" id="mapLegend"></div>
+      <div class="slider-row">
+        <button id="playBtn">▶ Odtwórz</button>
+        <input type="range" id="pointSlider" min="0" max="0" value="0" step="1">
+      </div>
+      <div class="readout" id="readout"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {min: 137, label: "Kat. 5", color: "#d63bd6"},
+  {min: 113, label: "Kat. 4", color: "#e0424f"},
+  {min: 96,  label: "Kat. 3", color: "#f06a3a"},
+  {min: 83,  label: "Kat. 2", color: "#f2a83a"},
+  {min: 64,  label: "Kat. 1", color: "#f5d13a"},
+  {min: 34,  label: "Sztorm tropikalny", color: "#5eb0ef"},
+  {min: 0,   label: "Depresja tropikalna", color: "#8b96ac"},
+];
+function categoryFor(windKt) {
+  for (const c of CATEGORIES) if (windKt >= c.min) return c;
+  return CATEGORIES[CATEGORIES.length - 1];
+}
+
+let state = {
+  storms: [],
+  tracks: {},
+  coast: null,
+  selected: null,
+  pointIndex: 0,
+  playing: false,
+  playTimer: null,
+};
+
+async function loadAll() {
+  const [storms, tracks, coast] = await Promise.all([
+    fetch("data/storms_2019.json").then(r => r.json()),
+    fetch("data/hurdat2_2019_tracks.json").then(r => r.json()),
+    fetch("data/atlantic_coastlines.json").then(r => r.json()),
+  ]);
+  state.storms = storms.storms;
+  state.tracks = tracks.tracks;
+  state.coast = coast;
+  document.getElementById("coastPath").setAttribute("d", coast.path_d);
+  renderTable();
+  const firstWithTrack = state.storms.find(s => state.tracks[s.name]);
+  selectStorm(firstWithTrack.name);
+}
+
+function renderTable() {
+  const body = document.getElementById("storm-table-body");
+  body.innerHTML = "";
+  for (const s of state.storms) {
+    const hasTrack = !!state.tracks[s.name];
+    const tr = document.createElement("tr");
+    tr.className = hasTrack ? "" : "disabled";
+    tr.dataset.name = s.name;
+    tr.innerHTML = `<td>${s.name}</td><td>${s.max_wind_kt} kt</td><td>${s.max_24h_increase_kt >= 0 ? "+" : ""}${s.max_24h_increase_kt} kt</td><td class="${s.ri ? "ri-yes" : "ri-no"}">${s.ri ? "TAK" : "nie"}</td>`;
+    if (hasTrack) tr.addEventListener("click", () => selectStorm(s.name));
+    body.appendChild(tr);
+  }
+}
+
+function selectStorm(name) {
+  state.selected = name;
+  state.pointIndex = 0;
+  stopPlay();
+  [...document.querySelectorAll("#storm-table-body tr")].forEach(tr => {
+    tr.classList.toggle("selected", tr.dataset.name === name);
+  });
+  const track = state.tracks[name];
+  document.getElementById("chart-title").textContent = `Wiatr w czasie — ${name}`;
+  document.getElementById("map-title").textContent = `Trasa i lokalizacja — ${name}`;
+  renderChart(track);
+  renderTrackOnMap(track);
+  const slider = document.getElementById("pointSlider");
+  slider.max = track.length - 1;
+  slider.value = 0;
+  updatePoint(0);
+}
+
+function renderChart(track) {
+  const svg = document.getElementById("chart-svg");
+  const W = 860, H = 220, padL = 40, padB = 24, padT = 10, padR = 10;
+  const maxWind = Math.max(...track.map(p => p.wind_kt), 40);
+  const n = track.length;
+  const x = i => padL + (i / (n - 1)) * (W - padL - padR);
+  const y = w => H - padB - (w / maxWind) * (H - padT - padB);
+
+  let svgContent = "";
+  // gridlines + y labels (0, 34, 64, 96, 113, 137 kt thresholds where relevant)
+  const ticks = [0, 34, 64, 96, 137].filter(t => t <= maxWind + 10);
+  for (const t of ticks) {
+    svgContent += `<line x1="${padL}" y1="${y(t)}" x2="${W - padR}" y2="${y(t)}" stroke="#24304a" stroke-width="1"/>`;
+    svgContent += `<text x="4" y="${y(t) + 3}" font-size="9" fill="#8b96ac">${t}</text>`;
+  }
+  // RI window highlight: find the 4-step window with max increase, shade if >=30
+  let maxInc = -999, incStart = -1;
+  for (let i = 0; i + 4 < n; i++) {
+    const inc = track[i + 4].wind_kt - track[i].wind_kt;
+    if (inc > maxInc) { maxInc = inc; incStart = i; }
+  }
+  if (maxInc >= 30) {
+    svgContent += `<rect x="${x(incStart)}" y="${padT}" width="${x(incStart + 4) - x(incStart)}" height="${H - padT - padB}" fill="#e0616b" opacity="0.15"/>`;
+    svgContent += `<text x="${x(incStart)}" y="${padT + 10}" font-size="9" fill="#e0616b">RI: +${maxInc}kt/24h</text>`;
+  }
+  // line
+  let d = "";
+  track.forEach((p, i) => { d += (i === 0 ? "M" : "L") + x(i).toFixed(1) + "," + y(p.wind_kt).toFixed(1); });
+  svgContent += `<path d="${d}" fill="none" stroke="#5eb0ef" stroke-width="2"/>`;
+  // dots colored by category
+  track.forEach((p, i) => {
+    const c = categoryFor(p.wind_kt);
+    svgContent += `<circle cx="${x(i)}" cy="${y(p.wind_kt)}" r="2.4" fill="${c.color}"/>`;
+  });
+  svg.innerHTML = svgContent;
+}
+
+function projectLonLat(lon, lat) {
+  const [lonMin, lonMax] = state.coast.lon_range;
+  const [latMin, latMax] = state.coast.lat_range;
+  const [, , W, H] = state.coast.viewBox;
+  const x = (lon - lonMin) / (lonMax - lonMin) * W;
+  const y = (latMax - lat) / (latMax - latMin) * H;
+  return [x, y];
+}
+
+function renderTrackOnMap(track) {
+  const [lonMin, lonMax] = state.coast.lon_range;
+  const [latMin, latMax] = state.coast.lat_range;
+  const inBox = p => p.lon >= lonMin && p.lon <= lonMax && p.lat >= latMin && p.lat <= latMax;
+  const visible = track.filter(inBox);
+  let d = "";
+  visible.forEach((p, i) => {
+    const [x, y] = projectLonLat(p.lon, p.lat);
+    d += (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
+  });
+  document.getElementById("trackPath").setAttribute("d", d);
+  const dotsG = document.getElementById("trackDots");
+  dotsG.innerHTML = visible.map(p => {
+    const [x, y] = projectLonLat(p.lon, p.lat);
+    const c = categoryFor(p.wind_kt);
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" fill="${c.color}" opacity="0.8"/>`;
+  }).join("");
+
+  const legend = document.getElementById("mapLegend");
+  legend.innerHTML = CATEGORIES.slice().reverse().map(c => `<span><i style="background:${c.color}"></i>${c.label}</span>`).join("");
+}
+
+function spiralArmPath(turns, points, scale) {
+  let d = "";
+  for (let i = 0; i <= points; i++) {
+    const t = (i / points) * turns * 2 * Math.PI;
+    const r = scale * (i / points);
+    const px = r * Math.cos(t), py = r * Math.sin(t);
+    d += (i === 0 ? "M" : "L") + px.toFixed(1) + "," + py.toFixed(1);
+  }
+  return d;
+}
+
+function updatePoint(idx) {
+  const track = state.tracks[state.selected];
+  idx = Math.max(0, Math.min(track.length - 1, idx));
+  state.pointIndex = idx;
+  document.getElementById("pointSlider").value = idx;
+  const p = track[idx];
+  const cat = categoryFor(p.wind_kt);
+
+  // readout
+  const readout = document.getElementById("readout");
+  const dt = `${p.date.slice(0,4)}-${p.date.slice(4,6)}-${p.date.slice(6,8)} ${p.time.slice(0,2)}:${p.time.slice(2,4)}Z`;
+  readout.innerHTML = `
+    <div class="cell"><span class="k">Data/czas (UTC)</span><span class="v">${dt}</span></div>
+    <div class="cell"><span class="k">Status</span><span class="v">${p.status}</span></div>
+    <div class="cell"><span class="k">Wiatr</span><span class="v">${p.wind_kt} kt</span></div>
+    <div class="cell"><span class="k">Kategoria</span><span class="v" style="color:${cat.color}">${cat.label}</span></div>`;
+
+  // cyclone glyph on map
+  const glyph = document.getElementById("cycloneGlyph");
+  const [lonMin, lonMax] = state.coast.lon_range;
+  const [latMin, latMax] = state.coast.lat_range;
+  const inBox = p.lon >= lonMin && p.lon <= lonMax && p.lat >= latMin && p.lat <= latMax;
+  if (!inBox) {
+    glyph.setAttribute("transform", "translate(-200,-200)"); // off-canvas
+    return;
+  }
+  const [x, y] = projectLonLat(p.lon, p.lat);
+  glyph.setAttribute("transform", `translate(${x.toFixed(1)},${y.toFixed(1)})`);
+
+  const shieldR = 14 + (p.wind_kt / 160) * 55; // cloud coverage scales with intensity
+  glyph.querySelector(".cloud-shield").setAttribute("r", shieldR.toFixed(1));
+  glyph.style.setProperty("--glyph-color", cat.color);
+
+  const armsG = document.getElementById("spiralArms");
+  const armScale = shieldR * 0.9;
+  const armPaths = armsG.querySelectorAll("path.arm");
+  armPaths.forEach(p => p.remove());
+  const d = spiralArmPath(1.6, 40, armScale);
+  [0, 120, 240].forEach(rot => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "arm");
+    path.setAttribute("stroke", cat.color);
+    path.setAttribute("transform", `rotate(${rot})`);
+    armsG.appendChild(path);
+  });
+}
+
+function stopPlay() {
+  state.playing = false;
+  if (state.playTimer) clearInterval(state.playTimer);
+  document.getElementById("playBtn").textContent = "▶ Odtwórz";
+}
+
+function togglePlay() {
+  if (state.playing) { stopPlay(); return; }
+  state.playing = true;
+  document.getElementById("playBtn").textContent = "⏸ Pauza";
+  state.playTimer = setInterval(() => {
+    const track = state.tracks[state.selected];
+    let next = state.pointIndex + 1;
+    if (next >= track.length) next = 0;
+    updatePoint(next);
+  }, 450);
+}
+
+document.getElementById("pointSlider").addEventListener("input", (e) => {
+  stopPlay();
+  updatePoint(parseInt(e.target.value));
+});
+document.getElementById("playBtn").addEventListener("click", togglePlay);
+
+loadAll();
+</script>
+
+</body>
+</html>

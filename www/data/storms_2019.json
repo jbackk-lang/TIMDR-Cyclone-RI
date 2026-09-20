@@ -1,0 +1,144 @@
+{
+  "storms": [
+    {
+      "name": "ANDREA",
+      "n_entries": 7,
+      "max_wind_kt": 35,
+      "max_24h_increase_kt": -5,
+      "ri": false
+    },
+    {
+      "name": "BARRY",
+      "n_entries": 25,
+      "max_wind_kt": 65,
+      "max_24h_increase_kt": 15,
+      "ri": false
+    },
+    {
+      "name": "THREE",
+      "n_entries": 5,
+      "max_wind_kt": 30,
+      "max_24h_increase_kt": 5,
+      "ri": false
+    },
+    {
+      "name": "CHANTAL",
+      "n_entries": 25,
+      "max_wind_kt": 35,
+      "max_24h_increase_kt": 5,
+      "ri": false
+    },
+    {
+      "name": "DORIAN",
+      "n_entries": 70,
+      "max_wind_kt": 160,
+      "max_24h_increase_kt": 35,
+      "ri": true
+    },
+    {
+      "name": "ERIN",
+      "n_entries": 14,
+      "max_wind_kt": 35,
+      "max_24h_increase_kt": 5,
+      "ri": false
+    },
+    {
+      "name": "FERNAND",
+      "n_entries": 9,
+      "max_wind_kt": 45,
+      "max_24h_increase_kt": 15,
+      "ri": false
+    },
+    {
+      "name": "GABRIELLE",
+      "n_entries": 35,
+      "max_wind_kt": 55,
+      "max_24h_increase_kt": 20,
+      "ri": false
+    },
+    {
+      "name": "HUMBERTO",
+      "n_entries": 34,
+      "max_wind_kt": 110,
+      "max_24h_increase_kt": 20,
+      "ri": false
+    },
+    {
+      "name": "JERRY",
+      "n_entries": 45,
+      "max_wind_kt": 90,
+      "max_24h_increase_kt": 35,
+      "ri": true
+    },
+    {
+      "name": "IMELDA",
+      "n_entries": 9,
+      "max_wind_kt": 40,
+      "max_24h_increase_kt": 0,
+      "ri": false
+    },
+    {
+      "name": "KAREN",
+      "n_entries": 25,
+      "max_wind_kt": 40,
+      "max_24h_increase_kt": 10,
+      "ri": false
+    },
+    {
+      "name": "LORENZO",
+      "n_entries": 48,
+      "max_wind_kt": 140,
+      "max_24h_increase_kt": 40,
+      "ri": true
+    },
+    {
+      "name": "MELISSA",
+      "n_entries": 25,
+      "max_wind_kt": 55,
+      "max_24h_increase_kt": 15,
+      "ri": false
+    },
+    {
+      "name": "FIFTEEN",
+      "n_entries": 13,
+      "max_wind_kt": 30,
+      "max_24h_increase_kt": 0,
+      "ri": false
+    },
+    {
+      "name": "NESTOR",
+      "n_entries": 15,
+      "max_wind_kt": 50,
+      "max_24h_increase_kt": 15,
+      "ri": false
+    },
+    {
+      "name": "OLGA",
+      "n_entries": 10,
+      "max_wind_kt": 45,
+      "max_24h_increase_kt": 10,
+      "ri": false
+    },
+    {
+      "name": "PABLO",
+      "n_entries": 22,
+      "max_wind_kt": 70,
+      "max_24h_increase_kt": 20,
+      "ri": false
+    },
+    {
+      "name": "REBEKAH",
+      "n_entries": 23,
+      "max_wind_kt": 70,
+      "max_24h_increase_kt": 35,
+      "ri": true
+    },
+    {
+      "name": "SEBASTIEN",
+      "n_entries": 34,
+      "max_wind_kt": 60,
+      "max_24h_increase_kt": 10,
+      "ri": false
+    }
+  ]
+}

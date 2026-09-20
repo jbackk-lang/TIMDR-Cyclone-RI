@@ -78,6 +78,24 @@ The extracted 2019 Atlantic season labels are in
 raw best-track 6-hourly wind speeds -- not copied from any secondary
 source.
 
+## Dashboard data (`www/data/`)
+
+- `atlantic_coastlines.json` -- Natural Earth 1:50m land polygons
+  (public domain), fetched via `unpkg.com/world-atlas@2/land-50m.json`
+  (TopoJSON), decoded, clipped to the Atlantic hurricane basin
+  (lon -98..-12, lat 5..48), and simplified client-side in-browser to a
+  compact SVG path (161 coastline rings incl. Bahamas/Antilles-scale
+  islands, ~27KB). Not an official NHC product -- it's a basemap for
+  orientation, not a hazard/navigation chart.
+- `hurdat2_2019_tracks.json` -- real full 6-hourly best-track
+  position+wind for 5 real 2019 Atlantic storms (DORIAN, LORENZO, JERRY,
+  HUMBERTO, BARRY), fetched directly from the same NHC HURDAT2 file as
+  above. Only these 5 (of the 20 in `storms_2019.json`) have a full
+  track bundled -- extending to the rest of the season is a matter of
+  re-running the same extraction, not a structural limitation.
+- `storms_2019.json` -- copy of the `storms` array from
+  `data/hurdat2_2019_atlantic_ri_labels.json`, for the dashboard table.
+
 ## What this repo could NOT verify from this environment
 
 SHIPS (Statistical Hurricane Intensity Prediction Scheme) developmental
