@@ -1,5 +1,9 @@
 # TIMDR-Cyclone-RI
 
+<!-- TIMDR HUB LINKS -->
+> **Ekosystem TIMDR:** [Knowledge Hub — dokumentacja i wyszukiwarka](https://jbackk-lang.github.io/TIMDR-AI-Knowledge-Base/) · [Panel badawczy](https://jbackk-lang.github.io/) · [GIA-TIMDR — źródła](https://github.com/jbackk-lang/GIA-TIMDR) · [Research AI — lokalne wyszukiwanie semantyczne](https://github.com/jbackk-lang/TIMDR-AI-Knowledge-Base). Publiczna wyszukiwarka Huba jest tekstowa; semantyczna wymaga lokalnego uruchomienia.
+<!-- /TIMDR HUB LINKS -->
+
 Formalizes the four storm characteristics that precede tropical cyclone
 vertical alignment and rapid intensification (RI), identified in a 2026
 NOAA-led study of 27 years of Hurricane Hunter radar data. Built and
